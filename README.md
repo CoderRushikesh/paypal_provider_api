@@ -27,7 +27,7 @@ All design decisions are documented in the docs/ folder.
 I maintain handwritten notes and diagrams (uploaded as images inside - z(required-images,testing,system) folder) 
 to showcase the thought process behind the architecture.
 
-![image alt]()
+![image alt](https://github.com/CoderRushikesh/paypal_provider_api/blob/90f37678033f9188059b937b546ec2d99ee4c1d9/z(required-images%2Ctesting%2Csystem)/descision.jpeg)
 
 📦 Deployment
 1 Steps to deploy on AWS:
