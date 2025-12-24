@@ -28,6 +28,7 @@ I maintain handwritten notes and diagrams (uploaded as images inside - z(require
 to showcase the thought process behind the architecture.
 
 ![image alt](https://github.com/CoderRushikesh/paypal_provider_api/blob/90f37678033f9188059b937b546ec2d99ee4c1d9/z(required-images%2Ctesting%2Csystem)/descision.jpeg)
+![image alt](https://github.com/CoderRushikesh/paypal_provider_api/blob/408647e845d334556036133d89d7bbb956cdb91c/z(required-images%2Ctesting%2Csystem)/design.jpeg)
 
 📦 Deployment
 1 Steps to deploy on AWS:
