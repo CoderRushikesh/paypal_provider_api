@@ -22,7 +22,7 @@ public class PaymentServiceImpl implements PaymentService {
 		log.info("Creating order in PayPal");
 		
 		String accessToken = tokenService.getAccessToken();
-		
+		log.info(" Access Token retrived : {}",accessToken);
 		return "Order created with " + accessToken;
 	}
 	
