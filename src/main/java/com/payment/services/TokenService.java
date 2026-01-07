@@ -8,8 +8,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payment.http.HttpRequest;
 import com.payment.http.HttpServiceEngine;
+import com.payment.res.PaypalOAuthToken;
 import com.paymentl.Constant.Constant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +37,8 @@ public class TokenService {
 
 	@Value("${paypal.outhurl}")
 	private String outhUrl ;
+	
+	private final ObjectMapper objectMapper;
 
 	public String getAccessToken() 
 	{
@@ -66,8 +73,21 @@ public class TokenService {
 
 		ResponseEntity<String> response = httpServiceEngine.makeHttpRequest(httpRequest);
 		log.info("HTTP Response received: {}", response);
+		
+		String tokenBody = response.getBody();
+		
+		try {
+			PaypalOAuthToken paypalOAuthToken = objectMapper.readValue(tokenBody, PaypalOAuthToken.class);
+		
+		   log.info("Parsed OAuth token response: {}", paypalOAuthToken);
+		   
+		   return paypalOAuthToken.getAccessToken();
+		} catch (Exception e) {
+			log.error("Error parsing OAuth token response", e);
+			throw new RuntimeException("Failed to parse OAuth token response", e);
+		} 
 
-		return "access token";
+	
 	}
 
 }
