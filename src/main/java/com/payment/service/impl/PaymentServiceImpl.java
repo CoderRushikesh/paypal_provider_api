@@ -14,12 +14,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payment.http.HttpRequest;
 import com.payment.http.HttpServiceEngine;
 import com.payment.pojo.CreateOrderReq;
+import com.payment.pojo.OrderResponse;
 import com.payment.req.Amount;
 import com.payment.req.ExperienceContext;
 import com.payment.req.OrderRequest;
 import com.payment.req.PaymentSource;
 import com.payment.req.Paypal;
 import com.payment.req.PurchaseUnit;
+import com.payment.res.PaypalOrder;
 import com.payment.service.interfaces.PaymentService;
 import com.payment.services.TokenService;
 
@@ -136,14 +138,42 @@ public class PaymentServiceImpl implements PaymentService {
 		log.info("Prepared HTTP Request for OAuth token: {}", httpRequest);
 
     ResponseEntity<String> successResponse =   httpServiceEngine.makeHttpRequest(httpRequest);
-     
       log.info("HTTP Response received: {}", successResponse);
 
-
+      //use model mapper to convert response body to PaypalOrder object
+      PaypalOrder paypalOrder = null;
+      try {
+         paypalOrder =	mapper.readValue(successResponse.getBody(), PaypalOrder.class);
+	} catch (Exception e) {
+	   log.error("Error parsing PayPal order response", e);
+	   throw new RuntimeException("Failed to parse PayPal order response", e);
+	}
+      
 		return successResponse.getBody(); 
 	}
 	
 	
+    public OrderResponse toOrderResponse(PaypalOrder paypalOrder) {
+    	
+    	log.info("Mapping PaypalOrder to OrderResponse: {}", paypalOrder);
+    	
+		OrderResponse response = new OrderResponse();
+		response.setId(paypalOrder.getId());
+		response.setStatus(paypalOrder.getStatus());
+		// Add more fields as necessary
+		
+		String redirectLink = paypalOrder.getLinks().stream()
+				.filter(link -> "approve".equals(link.getRel()))
+				.findFirst()
+				.map(link -> link.getHref())
+			    .orElse(null);
+		
+		response.setRedirectUrl(redirectLink);
+		
+		log.info("Mapped OrderResponse: {}", response);
+		
+		return response;
+	}
 	
 
 }

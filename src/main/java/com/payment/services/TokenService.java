@@ -77,11 +77,14 @@ public class TokenService {
 		String tokenBody = response.getBody();
 		
 		try {
-			PaypalOAuthToken paypalOAuthToken = objectMapper.readValue(tokenBody, PaypalOAuthToken.class);
+			PaypalOAuthToken token = objectMapper.readValue(tokenBody, PaypalOAuthToken.class);
 		
-		   log.info("Parsed OAuth token response: {}", paypalOAuthToken);
+		   log.info("Parsed OAuth token response: {}", token);
 		   
-		   return paypalOAuthToken.getAccessToken();
+		   accessToken = token.getAccessToken();
+		   log.info("Caching access Token for future use");
+		   
+		   return token.getAccessToken();
 		} catch (Exception e) {
 			log.error("Error parsing OAuth token response", e);
 			throw new RuntimeException("Failed to parse OAuth token response", e);
