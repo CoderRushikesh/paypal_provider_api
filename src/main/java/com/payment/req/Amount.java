@@ -13,8 +13,5 @@ public class Amount {
 
     private String value;
 
-	public void setTotal(String string) {
-		// TODO Auto-generated method stub
-		
-	}
+	
 }
