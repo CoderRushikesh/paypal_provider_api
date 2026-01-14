@@ -28,152 +28,126 @@ import com.payment.services.TokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
-	private static final String CAPTURE = "CAPTURE";
-	private static final String PAY_NOW = "PAY_NOW";
-	private static final String NO_SHIPPING = "NO_SHIPPING";
-	private static final String LANDING_PAGE_LOGIN = "LOGIN";
-	private static final String IMMEDIATE_PAYMENT_REQUIRED = "IMMEDIATE_PAYMENT_REQUIRED";
-	private static final String _2F = "%.2f";
-	private static final String PAY_PAL_REQUEST_ID = "PayPal-Request-Id";
-	private final TokenService tokenService;
-	private final ObjectMapper mapper;
+    private static final String CAPTURE = "CAPTURE";
+    private static final String PAY_NOW = "PAY_NOW";
+    private static final String NO_SHIPPING = "NO_SHIPPING";
+    private static final String LANDING_PAGE_LOGIN = "LOGIN";
+    private static final String IMMEDIATE_PAYMENT_REQUIRED = "IMMEDIATE_PAYMENT_REQUIRED";
+    private static final String _2F = "%.2f";
+    private static final String PAY_PAL_REQUEST_ID = "PayPal-Request-Id";
+
+    private final TokenService tokenService;
+    private final ObjectMapper mapper;
     private final HttpServiceEngine httpServiceEngine;
-   @Value("paypal.createOrder.url")
-    private String CreateOrder_url ; 
 
+    @Value("${paypal.createOrder.url}")
+    private String createOrderUrl;
+
+    @Override
     public String createOrder(CreateOrderReq createOrderReq) {
+        log.info("Creating order in PayPal");
 
-		log.info("Creating order in PayPal");
+        String accessToken = tokenService.getAccessToken();
+        log.info("Access Token retrieved: {}", accessToken);
 
-		String accessToken = tokenService.getAccessToken();
-		log.info(" Access Token retrived : {}",accessToken);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
+        String uuid = UUID.randomUUID().toString();
+        log.info("Generated UUID for PayPal request: {}", uuid);
+        headers.add(PAY_PAL_REQUEST_ID, uuid);
 
+        Amount amount = new Amount();
+        amount.setCurrencyCode(createOrderReq.getCurrencyCode());
+        amount.setValue(String.format(_2F, createOrderReq.getAmount()));
 
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(accessToken);
-		headers.setContentType(MediaType.APPLICATION_JSON);
+        PurchaseUnit unit = new PurchaseUnit();
+        unit.setAmount(amount);
 
+        ExperienceContext ctx = new ExperienceContext();
+        ctx.setPaymentMethodPreference(IMMEDIATE_PAYMENT_REQUIRED);
+        ctx.setLandingPage(LANDING_PAGE_LOGIN);
+        ctx.setShippingPreference(NO_SHIPPING);
+        ctx.setUserAction(PAY_NOW);
+        ctx.setReturnUrl(createOrderReq.getReturnUrl());
+        ctx.setCancelUrl(createOrderReq.getCancelUrl());
 
-		// set headers Paypal , request id => UUID
-		String uuid = UUID.randomUUID().toString();
-		log.info("Generated UUID for PayPal request: {}", uuid);
-		headers.add(PAY_PAL_REQUEST_ID, uuid);
+        Paypal paypal = new Paypal();
+        paypal.setExperienceContext(ctx);
 
+        PaymentSource ps = new PaymentSource();
+        ps.setPaypal(paypal);
 
-		
-		Amount amount = new Amount();
-		
-		amount.setCurrencyCode(createOrderReq.getCurrencyCode());
-		
-		// read the amount from createOrderReq and convert to 2 decimal places
-		String amtStr = String.format(_2F, createOrderReq.getAmount());
-		
-		amount.setValue(amtStr);
+        OrderRequest order = new OrderRequest();
+        order.setIntent(CAPTURE);
+        order.setPurchaseUnits(Collections.singletonList(unit));
+        order.setPaymentSource(ps);
 
-		// Create purchese unit
-		PurchaseUnit unit = new PurchaseUnit();
-		unit.setAmount(amount);
+        String requestAsJson;
+        try {
+            requestAsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(order);
+            log.info("Order JSON: {}", requestAsJson);
+        } catch (Exception e) {
+            log.error("Error converting order to JSON", e);
+            throw new RuntimeException("Error converting order to JSON", e);
+        }
 
-		// Exprience context
-		ExperienceContext ctx = new ExperienceContext();
-		ctx.setPaymentMethodPreference(IMMEDIATE_PAYMENT_REQUIRED);
-		ctx.setLandingPage(LANDING_PAGE_LOGIN);
-		ctx.setShippingPreference(NO_SHIPPING);
-		ctx.setUserAction(PAY_NOW);
-		ctx.setReturnUrl(createOrderReq.getReturnUrl());
-		ctx.setCancelUrl(createOrderReq.getCancelUrl());
+        HttpRequest httpRequest = new HttpRequest();
+        httpRequest.setHttpMethod(HttpMethod.POST);
+        httpRequest.setUrl(createOrderUrl);
+        httpRequest.setHttpHeaders(headers);
+        httpRequest.setBody(requestAsJson);
 
+        log.info("Prepared HTTP Request: {}", httpRequest);
 
-		// Paypal object
-		Paypal paypal = new Paypal();
-		paypal.setExperienceContext(ctx);
+        ResponseEntity<String> successResponse = httpServiceEngine.makeHttpRequest(httpRequest);
 
-		// payment source
-		PaymentSource ps = new PaymentSource();
-		ps.setPaypal(paypal);
+        if (successResponse == null || successResponse.getBody() == null) {
+            log.error("PayPal API returned null response");
+            throw new RuntimeException("PayPal API returned null response");
+        }
 
-		// final order request
-		OrderRequest order = new OrderRequest();
-		order.setIntent(CAPTURE);
-		order.setPurchaseUnits(Collections.singletonList(unit));
-		order.setPaymentSource(ps);
+        log.info("HTTP Response received: {}", successResponse);
 
-		
-		log.info("Constructed Order Object: {}", order);
-		// Convert order object to JSON
-		
-		String requestAsJson = null;
-		try {
-			requestAsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(order);
-			log.info("Order JSON: {}", requestAsJson);
+        PaypalOrder paypalOrder;
+        try {
+            paypalOrder = mapper.readValue(successResponse.getBody(), PaypalOrder.class);
+        } catch (Exception e) {
+            log.error("Error parsing PayPal order response", e);
+            throw new RuntimeException("Failed to parse PayPal order response", e);
+        }
 
-		} catch (Exception e) {
-			log.error("Error converting order to JSON", e);
-			throw new RuntimeException("Error converting order to JSON", e);
-		}
+        log.info("Parsed PaypalOrder object: {}", paypalOrder);
 
+        OrderResponse orderResponse = toOrderResponse(paypalOrder);
+        log.info("Mapped OrderResponse object: {}", orderResponse);
 
+        return orderResponse.getRedirectUrl(); // return useful info instead of hardcoded string
+    }
 
+    private OrderResponse toOrderResponse(PaypalOrder paypalOrder) {
+        log.info("Mapping PaypalOrder to OrderResponse: {}", paypalOrder);
 
-		// Prepare form data
-		//		MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-		//		formData.add(Constant.GRANT_TYPE, Constant.CLIENT_CREDENTIALS );
+        OrderResponse response = new OrderResponse();
+        response.setId(paypalOrder.getId());
+        response.setStatus(paypalOrder.getStatus());
 
+        String redirectLink = paypalOrder.getLinks().stream()
+                .filter(link -> "approve".equals(link.getRel()))
+                .findFirst()
+                .map(link -> link.getHref())
+                .orElse(null);
 
-		HttpRequest httpRequest = new HttpRequest();
-		httpRequest.setHttpMethod(HttpMethod.POST);
-		
-		httpRequest.setUrl(CreateOrder_url);
-		httpRequest.setHttpHeaders(headers);
-		httpRequest.setBody(requestAsJson);
+        response.setRedirectUrl(redirectLink);
 
+        log.info("Mapped OrderResponse: {}", response);
 
-		log.info("Prepared HTTP Request for OAuth token: {}", httpRequest);
-
-    ResponseEntity<String> successResponse =   httpServiceEngine.makeHttpRequest(httpRequest);
-      log.info("HTTP Response received: {}", successResponse);
-
-      //use model mapper to convert response body to PaypalOrder object
-      PaypalOrder paypalOrder = null;
-      try {
-         paypalOrder =	mapper.readValue(successResponse.getBody(), PaypalOrder.class);
-	} catch (Exception e) {
-	   log.error("Error parsing PayPal order response", e);
-	   throw new RuntimeException("Failed to parse PayPal order response", e);
-	}
-      
-		return successResponse.getBody(); 
-	}
-	
-	
-    public OrderResponse toOrderResponse(PaypalOrder paypalOrder) {
-    	
-    	log.info("Mapping PaypalOrder to OrderResponse: {}", paypalOrder);
-    	
-		OrderResponse response = new OrderResponse();
-		response.setId(paypalOrder.getId());
-		response.setStatus(paypalOrder.getStatus());
-		// Add more fields as necessary
-		
-		String redirectLink = paypalOrder.getLinks().stream()
-				.filter(link -> "approve".equals(link.getRel()))
-				.findFirst()
-				.map(link -> link.getHref())
-			    .orElse(null);
-		
-		response.setRedirectUrl(redirectLink);
-		
-		log.info("Mapped OrderResponse: {}", response);
-		
-		return response;
-	}
-	
-
+        return response;
+    }
 }

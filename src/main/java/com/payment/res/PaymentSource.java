@@ -1,5 +1,9 @@
 package com.payment.res;
 
-public class PaymentSource {
+import lombok.Data;
 
+@Data
+public class PaymentSource {
+    private Paypal paypal;
+    // Getter & Setter
 }
