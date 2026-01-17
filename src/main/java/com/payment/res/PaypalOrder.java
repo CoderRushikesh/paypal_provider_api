@@ -2,6 +2,7 @@ package com.payment.res;
 
 import java.util.List;
 
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Data;
@@ -15,6 +16,7 @@ public class PaypalOrder {
     @JsonProperty("payment_source")
     private PaymentSource paymentSource;
 
+     @JsonProperty("links")
     private List<PaypalLink> links;
 
     // Getters & Setters

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.payment.pojo.CreateOrderReq;
+import com.payment.pojo.OrderResponse;
 import com.payment.service.interfaces.PaymentService;
 
 import jakarta.annotation.PostConstruct;
@@ -26,12 +27,12 @@ public class paymentController {
 	
 	
 	@PostMapping("/Payments")
-	public String createOrder(@RequestBody CreateOrderReq createOrderReq) {
+	public OrderResponse createOrder(@RequestBody CreateOrderReq createOrderReq) {
 	
 		log.info("Creating Order in paypal provider service +||createOrderReq: {}", createOrderReq);
 		
 		
-		String response = paymentService.createOrder(createOrderReq);
+		OrderResponse response = paymentService.createOrder(createOrderReq);
 		
 		log.info("Response from payment service: {}", response);
 		return  response;

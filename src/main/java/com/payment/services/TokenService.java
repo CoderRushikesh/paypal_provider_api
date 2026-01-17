@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payment.http.HttpRequest;
 import com.payment.http.HttpServiceEngine;
 import com.payment.res.PaypalOAuthToken;
+import com.payment.util.JsonUtil;
 import com.paymentl.Constant.Constant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class TokenService {
 	private String outhUrl ;
 	
 	private final ObjectMapper objectMapper;
+	private final JsonUtil jsonUtil;
 
 	public String getAccessToken() 
 	{
@@ -76,21 +78,27 @@ public class TokenService {
 		
 		String tokenBody = response.getBody();
 		
-		try {
-			PaypalOAuthToken token = objectMapper.readValue(tokenBody, PaypalOAuthToken.class);
 		
-		   log.info("Parsed OAuth token response: {}", token);
-		   
-		   accessToken = token.getAccessToken();
+		PaypalOAuthToken token=   jsonUtil.fromJson(tokenBody, PaypalOAuthToken.class);
+		 accessToken = token.getAccessToken();
 		   log.info("Caching access Token for future use");
-		   
-		   return token.getAccessToken();
-		} catch (Exception e) {
-			log.error("Error parsing OAuth token response", e);
-			throw new RuntimeException("Failed to parse OAuth token response", e);
-		} 
+	    
+	    
+//		try {
+//			PaypalOAuthToken token = objectMapper.readValue(tokenBody, PaypalOAuthToken.class);
+//		
+//		   log.info("Parsed OAuth token response: {}", token);
+//		   
+//		   accessToken = token.getAccessToken();
+//		   log.info("Caching access Token for future use");
+//		   
+//		   return token.getAccessToken();
+//		} catch (Exception e) {
+//			log.error("Error parsing OAuth token response", e);
+//			throw new RuntimeException("Failed to parse OAuth token response", e);
+//		} 
 
-	
+	  return accessToken;
 	}
 
 }

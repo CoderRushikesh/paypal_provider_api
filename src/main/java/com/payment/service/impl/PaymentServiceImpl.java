@@ -21,9 +21,11 @@ import com.payment.req.OrderRequest;
 import com.payment.req.PaymentSource;
 import com.payment.req.Paypal;
 import com.payment.req.PurchaseUnit;
+import com.payment.res.PaypalLink;
 import com.payment.res.PaypalOrder;
 import com.payment.service.interfaces.PaymentService;
 import com.payment.services.TokenService;
+import com.payment.util.JsonUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,12 +46,14 @@ public class PaymentServiceImpl implements PaymentService {
     private final TokenService tokenService;
     private final ObjectMapper mapper;
     private final HttpServiceEngine httpServiceEngine;
-
+    private final JsonUtil jsonUtil;
+    
+    
     @Value("${paypal.createOrder.url}")
     private String createOrderUrl;
 
     @Override
-    public String createOrder(CreateOrderReq createOrderReq) {
+    public OrderResponse createOrder(CreateOrderReq createOrderReq) {
         log.info("Creating order in PayPal");
 
         String accessToken = tokenService.getAccessToken();
@@ -89,14 +93,19 @@ public class PaymentServiceImpl implements PaymentService {
         order.setPurchaseUnits(Collections.singletonList(unit));
         order.setPaymentSource(ps);
 
-        String requestAsJson;
-        try {
-            requestAsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(order);
-            log.info("Order JSON: {}", requestAsJson);
-        } catch (Exception e) {
-            log.error("Error converting order to JSON", e);
-            throw new RuntimeException("Error converting order to JSON", e);
-        }
+        
+   // convert to json String 
+        String requestAsJson=  jsonUtil.toJson(order);
+        
+        
+//        String requestAsJson;
+//        try {
+//            requestAsJson = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(order);
+//            log.info("Order JSON: {}", requestAsJson);
+//        } catch (Exception e) {
+//            log.error("Error converting order to JSON", e);
+//            throw new RuntimeException("Error converting order to JSON", e);
+//        }
 
         HttpRequest httpRequest = new HttpRequest();
         httpRequest.setHttpMethod(HttpMethod.POST);
@@ -115,21 +124,27 @@ public class PaymentServiceImpl implements PaymentService {
 
         log.info("HTTP Response received: {}", successResponse);
 
-        PaypalOrder paypalOrder;
-        try {
-            paypalOrder = mapper.readValue(successResponse.getBody(), PaypalOrder.class);
-        } catch (Exception e) {
-            log.error("Error parsing PayPal order response", e);
-            throw new RuntimeException("Failed to parse PayPal order response", e);
-        }
+  
+ // 
+        PaypalOrder paypalOrder=   jsonUtil.fromJson(successResponse.getBody(), PaypalOrder.class);
+             
+//        PaypalOrder paypalOrder;
+//        try {
+//            paypalOrder = mapper.readValue(successResponse.getBody(), PaypalOrder.class);
+//        } catch (Exception e) {
+//            log.error("Error parsing PayPal order response", e);
+//            throw new RuntimeException("Failed to parse PayPal order response", e);
+//        }
 
         log.info("Parsed PaypalOrder object: {}", paypalOrder);
 
         OrderResponse orderResponse = toOrderResponse(paypalOrder);
         log.info("Mapped OrderResponse object: {}", orderResponse);
 
-        return orderResponse.getRedirectUrl(); // return useful info instead of hardcoded string
+        return orderResponse; // return useful info instead of hardcoded string
     }
+    
+    
 
     private OrderResponse toOrderResponse(PaypalOrder paypalOrder) {
         log.info("Mapping PaypalOrder to OrderResponse: {}", paypalOrder);
@@ -138,11 +153,22 @@ public class PaymentServiceImpl implements PaymentService {
         response.setId(paypalOrder.getId());
         response.setStatus(paypalOrder.getStatus());
 
+//        String redirectLink = paypalOrder.getLinks().stream()
+//                .filter(link -> "approve".equals(link.getRel()))
+//                .findFirst()
+//                .map(PaypalLink::getHref)
+//                .orElse(null);
+        
         String redirectLink = paypalOrder.getLinks().stream()
-                .filter(link -> "approve".equals(link.getRel()))
+                .filter(link ->
+                        "approve".equalsIgnoreCase(link.getRel()) ||
+                        "payer-action".equalsIgnoreCase(link.getRel()) ||
+                        "checkout".equalsIgnoreCase(link.getRel())
+                )
                 .findFirst()
-                .map(link -> link.getHref())
+                .map(PaypalLink::getHref)
                 .orElse(null);
+
 
         response.setRedirectUrl(redirectLink);
 
