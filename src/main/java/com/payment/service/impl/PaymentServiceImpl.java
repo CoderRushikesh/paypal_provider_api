@@ -1,8 +1,7 @@
 package com.payment.service.impl;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import com.payment.exception.PaypalProviderException;
 import com.payment.http.HttpRequest;
 import com.payment.http.HttpServiceEngine;
@@ -14,7 +13,6 @@ import com.payment.services.TokenService;
 import com.payment.services.helper.createOrderHelpter;
 import com.payment.util.JsonUtil;
 import com.paymentl.Constant.ErrorCodeEnum;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,12 +30,24 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public OrderResponse createOrder(CreateOrderReq createOrderReq) {
         log.info("Creating order in PayPal");
+        
 
-        // currentCode is not pass
-        if(createOrderReq.getCurrencyCode() == null) {
+        if(createOrderReq.getReturnUrl() == null) {
+        	log.error("Return URL is required field and cannot be null / black ");
+			throw new PaypalProviderException(
+					ErrorCodeEnum.INVALID_REQUEST.getErrorCode(),
+					ErrorCodeEnum.INVALID_REQUEST.getErrorMessage(),
+					HttpStatus.BAD_REQUEST
+					);
+		}
+        
+        // currentCode is not pass - 4xx 400 bad request 
+        if(createOrderReq.getCurrencyCode() == null || createOrderReq.getCurrencyCode().isEmpty()) {
+        	
         	throw new PaypalProviderException(
         			ErrorCodeEnum.CURRENT_CODE_REQUIRED.getErrorCode(),
-        			ErrorCodeEnum.CURRENT_CODE_REQUIRED.getErrorMessage()
+        			ErrorCodeEnum.CURRENT_CODE_REQUIRED.getErrorMessage(),
+        			HttpStatus.BAD_REQUEST
         			);
         }
         
