@@ -1,33 +1,19 @@
 package com.payment.service.impl;
 
-import java.util.Collections;
-import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.payment.exception.PaypalProviderException;
 import com.payment.http.HttpRequest;
 import com.payment.http.HttpServiceEngine;
 import com.payment.pojo.CreateOrderReq;
 import com.payment.pojo.OrderResponse;
-import com.payment.req.Amount;
-import com.payment.req.ExperienceContext;
-import com.payment.req.OrderRequest;
-import com.payment.req.PaymentSource;
-import com.payment.req.Paypal;
-import com.payment.req.PurchaseUnit;
-import com.payment.res.PaypalLink;
 import com.payment.res.PaypalOrder;
 import com.payment.service.interfaces.PaymentService;
 import com.payment.services.TokenService;
 import com.payment.services.helper.createOrderHelpter;
 import com.payment.util.JsonUtil;
-import com.paymentl.Constant.Constant;
+import com.paymentl.Constant.ErrorCodeEnum;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +33,14 @@ public class PaymentServiceImpl implements PaymentService {
     public OrderResponse createOrder(CreateOrderReq createOrderReq) {
         log.info("Creating order in PayPal");
 
+        // currentCode is not pass
+        if(createOrderReq.getCurrencyCode() == null) {
+        	throw new PaypalProviderException(
+        			ErrorCodeEnum.CURRENT_CODE_REQUIRED.getErrorCode(),
+        			ErrorCodeEnum.CURRENT_CODE_REQUIRED.getErrorMessage()
+        			);
+        }
+        
         String accessToken = tokenService.getAccessToken();
         log.info("Access Token retrieved: {}", accessToken);
 
