@@ -2,11 +2,15 @@
 
 package com.payment.http;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import com.payment.PaypalProviderServiceApplication;
+import com.payment.exception.PaypalProviderException;
+import com.paymentl.Constant.ErrorCodeEnum;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,9 +45,42 @@ public class HttpServiceEngine {
 			        .body(httpRequest.getBody())
 			        .retrieve()
 			        .toEntity(String.class);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		}
+		 catch( HttpClientErrorException e) {
+			// valid error response 
+			 log.error("HTTP Client Error: {}" , e.getStatusCode());
+		   
+			 
+		// if the error is  gateway time or service unavailable throw PayPalProviderException
+			 if(e.getStatusCode() == HttpStatus.GATEWAY_TIMEOUT || e.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE) {
+				 log.error("PayPal service is currently unavailable ");
+				 throw new PaypalProviderException(
+						 ErrorCodeEnum.PAYPAL_SERVICE_UNAVAILABLE.getErrorCode(),
+						 ErrorCodeEnum.PAYPAL_SERVICE_UNAVAILABLE.getErrorMessage(),
+						 HttpStatus.SERVICE_UNAVAILABLE
+						 );
+			 }
+			 
+			 
+			 // return response entity with error details
+			 String errorResponse = e.getResponseBodyAsString();
+			
+			 log.info(errorResponse);
+			 return ResponseEntity
+					 .status(e.getStatusCode())
+					 .body(errorResponse);
+		 }
+		
+		 
+		
+		catch (Exception e) {
+			log.error("Exception while preparing from data : {} " , e.getMessage() ,e );
+			
+			 throw new PaypalProviderException(
+					 ErrorCodeEnum.PAYPAL_SERVICE_UNAVAILABLE.getErrorCode(),
+					 ErrorCodeEnum.PAYPAL_SERVICE_UNAVAILABLE.getErrorCode(),
+					 HttpStatus.SERVICE_UNAVAILABLE
+					 );
 		}
 
 //		
