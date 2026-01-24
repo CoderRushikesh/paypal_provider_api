@@ -9,85 +9,73 @@ import com.paymentl.Constant.ErrorCodeEnum;
 
 import lombok.extern.slf4j.Slf4j;
 
-@Service
-@Slf4j
-public class PaymentValidator {
 
-	public void validateCreateOrderRequest(CreateOrderReq request) {
-	log.info("Validating Create Order Request: {}", request);
-		
-		
-	   if(request == null) {
-		   log.error("Create Order Request cannot be null ");
-		   throw new PaypalProviderException(
-				   ErrorCodeEnum.INVALID_REQUEST.getErrorCode(),ErrorCodeEnum.INVALID_REQUEST.getErrorMessage(), HttpStatus.BAD_REQUEST);
-	   }
-	
-		if (request.getReturnUrl() == null || request.getReturnUrl().isEmpty()) {
-			log.error("Return URL is required field and cannot be null / blank ");
-			throw new PaypalProviderException(
-					ErrorCodeEnum.RETURN_URL_REQUIRED.getErrorCode(),
-					ErrorCodeEnum.RETURN_URL_REQUIRED.getErrorMessage(),
-					HttpStatus.BAD_REQUEST
-					);
-		}
 
+	@Service
+	@Slf4j
+	public class PaymentValidator {
 		
-		if(request.getAmount() == null ||request.getAmount() <= 0) {
-			log.error("Amount must be greater than zero ");
-			throw new PaypalProviderException(
-					ErrorCodeEnum.INVALID_REQUEST.getErrorCode(),
-					ErrorCodeEnum.INVALID_AMOUNT.getErrorMessage(),
-					HttpStatus.BAD_REQUEST
-					);	
-		}
-		
-		if (request.getCurrencyCode() == null || request.getCurrencyCode().isEmpty()) {
-			log.error("Currency code is required field and cannot be null / blank ");
-			throw new PaypalProviderException(
-					ErrorCodeEnum.CURRENT_CODE_REQUIRED.getErrorCode(),
-					ErrorCodeEnum.CURRENT_CODE_REQUIRED.getErrorMessage(),
-					HttpStatus.BAD_REQUEST
-					
-					);
-		}
-		
-		// check return url 
-		if(request.getReturnUrl() == null && request.getReturnUrl().isEmpty()) {
-			log.error("Return URL must start with http:// or https:// ");
-			throw new PaypalProviderException(
-					ErrorCodeEnum.INVALID_REQUEST.getErrorCode(),
-					"Return URL must start with http:// or https://",
-					HttpStatus.BAD_REQUEST
-					);
-		}
-		
-		// check cancel url if provided
-		if(request.getCancelUrl() == null && request.getCancelUrl().isEmpty()) {
-			if(!request.getCancelUrl().startsWith("http://") && !request.getCancelUrl().startsWith("https://")) {
-				log.error("Cancel URL must start with http:// or https:// ");
+		/**
+		 * This method checks incoming CreateOrderReq for null/invalid values.
+		 * If there is any validation error, it throws PaypalProviderException
+		 * if no error, then just runs till the end. So void return type.
+		 * @param createOrderReq
+		 */
+		public void validateCreateOrder(CreateOrderReq createOrderReq) {
+			log.info("Validating create order request: {}", createOrderReq);
+			
+			if (createOrderReq == null) {
+				log.error("Create order request is null");
+				
 				throw new PaypalProviderException(
-						ErrorCodeEnum.RETURN_URL_REQUIRED.getErrorCode(),
-						ErrorCodeEnum.RETURN_URL_REQUIRED.getErrorMessage(),
-						HttpStatus.BAD_REQUEST
-						);
+						ErrorCodeEnum.INVALID_REQUEST.getErrorCode(), 
+						ErrorCodeEnum.INVALID_REQUEST.getErrorMessage(),
+						HttpStatus.BAD_REQUEST);
 			}
-		}
-		
-		// check cancle url
-		if(request.getCancelUrl() == null || request.getCancelUrl().isEmpty()) {
 			
-				log.error("Cancel URL must start with http:// or https:// ");
+			if (createOrderReq.getAmount() == null 
+					|| createOrderReq.getAmount() <= 0) {
+				log.error("Invalid amount in create order request: {}", 
+						createOrderReq.getAmount());
+				
 				throw new PaypalProviderException(
-						ErrorCodeEnum.CANCEL_URL_REQUIRED.getErrorCode(),
-						ErrorCodeEnum.CANCEL_URL_REQUIRED.getErrorMessage(),
-						HttpStatus.BAD_REQUEST
-						);
+						ErrorCodeEnum.INVALID_AMOUNT.getErrorCode(), 
+						ErrorCodeEnum.INVALID_AMOUNT.getErrorMessage(),
+						HttpStatus.BAD_REQUEST);
+			}
 			
+			if (createOrderReq.getCurrencyCode() == null 
+					|| createOrderReq.getCurrencyCode().isBlank()) {
+				log.error("Currency code is required in create order request");
+				
+				throw new PaypalProviderException(
+						ErrorCodeEnum.CURRENCY_CODE_REQUIRED.getErrorCode(), 
+						ErrorCodeEnum.CURRENCY_CODE_REQUIRED.getErrorMessage(),
+						HttpStatus.BAD_REQUEST);
+			}
+			
+			// check returnUrl
+			if (createOrderReq.getReturnUrl() == null 
+					|| createOrderReq.getReturnUrl().isBlank()) {
+				log.error("Return URL is required in create order request");
+				
+				throw new PaypalProviderException(
+						ErrorCodeEnum.RETURN_URL_REQUIRED.getErrorCode(), 
+						ErrorCodeEnum.RETURN_URL_REQUIRED.getErrorMessage(),
+						HttpStatus.BAD_REQUEST);
+			}
+			
+			//check cancelUrl
+			if (createOrderReq.getCancelUrl() == null 
+					|| createOrderReq.getCancelUrl().isBlank()) {
+				log.error("Cancel URL is required in create order request");
+				
+				throw new PaypalProviderException(
+						ErrorCodeEnum.CANCEL_URL_REQUIRED.getErrorCode(), 
+						ErrorCodeEnum.CANCEL_URL_REQUIRED.getErrorMessage(),
+						HttpStatus.BAD_REQUEST);
+			}
+			log.info("Create order request validation passed");
 		}
-		
-		log.info("Create Order Request validation passed.");
+
 	}
-	
-	
-}

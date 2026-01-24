@@ -19,7 +19,7 @@ public enum ErrorCodeEnum {
 	 PAYPAL_API_FORBIDDEN("40005" , "Forbidden access to PayPal API, please check your permissions "),
 	 PAYPAL_API_NOT_FOUND("40006" , "PayPal API endpoint not found, please check the URL "),
 	 PAYPAL_API_INTERNAL_ERROR("50001" , "Internal server error occurred while processing the request "),
-	 PAYPAL_ERROR("300007" , "<paypal error>");
+	 PAYPAL_ERROR("300007" , "<paypal error>"), PAYPAL_UNKNOWN_ERROR("30002","error"), CURRENCY_CODE_REQUIRED("30008","Currency code is required field and cannot be null / blank");
 	
 	private final String errorCode;
 	private final String errorMessage;
