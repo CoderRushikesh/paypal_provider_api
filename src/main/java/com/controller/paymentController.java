@@ -4,6 +4,7 @@ package com.controller;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +39,17 @@ public class paymentController {
 		return  response;
 	}
     
+	@PostMapping("/{orderId}/capture")
+	public OrderResponse captureOrder(@PathVariable String orderId) {
+		log.info("Capturing order in PayPal provider service"
+				+ "||orderId:{}",
+				orderId);
+		
+		OrderResponse response = paymentService.captureOrder(orderId);
+		log.info("Order capture response from service: {}", response);
+		
+		return response;
+	}
 	
 
 	@PostConstruct
