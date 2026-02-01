@@ -68,7 +68,7 @@ Here’s a sample screenshot showing a successful order creation:
 
 <img src="z(required-images,testing,system)/succesully_CreateOrder.jpg" alt="Successfully Create Order" width="600"/>
 
-
+<img src="z(z(required-images,testing,system)/successfully.png" alt="Successfully Create Order" width="600"/>
 
 This structure makes it crystal clear:
 - **Setup steps** (client ID/secret replacement)  
