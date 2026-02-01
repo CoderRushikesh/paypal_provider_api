@@ -64,9 +64,9 @@ Content-Type: application/json
 
 Here’s a sample screenshot showing a successful order creation:
 
-**![Successfully Create Order](succesully_CreateOrder.jpg)**
 
-<img src="images/succesully_CreateOrder.jpg" alt="Successfully Create Order" width="600"/>
+
+<img src="z(required-images,testing,system)/succesully_CreateOrder.jpg" alt="Successfully Create Order" width="600"/>
 
 
 
