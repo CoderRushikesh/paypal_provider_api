@@ -60,6 +60,11 @@ Content-Type: application/json
   "redirectUrl": "https://www.sandbox.paypal.com/checkoutnow?token=EC-123456"
 }
 
+## 🖼️ Example Screenshot
+
+Here’s a sample screenshot showing a successful order creation:
+
+![Successfully Create Order](succesully_CreateOrder.jpg)
 
 
 This structure makes it crystal clear:
