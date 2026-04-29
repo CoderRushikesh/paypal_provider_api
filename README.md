@@ -1,4 +1,4 @@
-# PayPal Provider Service API (Demo)
+# PayPal Provider Service API 
 
 # PayPal Provider Service
 
