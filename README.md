@@ -1,23 +1,38 @@
 # PayPal Provider Service API (Demo)
 
-This repository contains a **demo PayPal Provider Service API** that I created after my internship.  
-The purpose of this project is purely educational — to improve my knowledge and gain hands-on experience with backend development and API integration.
+# PayPal Provider Service
+
+Spring Boot microservice handling PayPal payment initiation — part of a two-service payment microservices system built for a food delivery platform.
+
+## Architecture
+
+This service acts as the **payment provider layer**:
+- Accepts payment requests from the order system
+- Initiates PayPal Standard Checkout (Create Order API)
+- Captures payments via PayPal Capture API
+- Communicates with `paypal_processing_service` for downstream processing
+
+## Tech Stack
+
+- Java 17, Spring Boot
+- OAuth2.0 + JWT (token-based security)
+- Redis (caching — reduced API response time by 40%)
+- Docker (containerised deployment)
+- AWS EC2 (production deployment)
+- REST API — JSON request/response
+- Eureka Service Registry *(in progress)*
+- API Gateway routing *(in progress)*
+- Circuit Breaker — Resilience4j *(in progress)*
+
+## Project Structure
 
 ---
 
-paypal_provider_api/
-│── src/
-│   ├── main/
-│   │   ├── java/com/example/paypal/
-│   │   │   ├── controller/   # REST controllers
-│   │   │   ├── service/      # Business logic
-│   │   │   ├── config/       # PayPal configuration
-│   │   │   └── model/        # Request/Response models
-│   │   └── resources/
-│   │       └── application.properties
-│   └── test/                 # Unit tests
-│
-└── README.md
+src/main/java/com/example/paypal/
+├── controller/     # REST endpoints
+├── service/        # Business logic + PayPal API calls
+├── config/         # PayPal OAuth2 configuration
+└── model/          # Request/Response DTOs
 
 
 ##  How to Use
