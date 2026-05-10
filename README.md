@@ -20,9 +20,9 @@ This service acts as the **payment provider layer**:
 - Docker (containerised deployment)
 - AWS EC2 (production deployment)
 - REST API — JSON request/response
-- Eureka Service Registry *(in progress)*
-- API Gateway routing *(in progress)*
-- Circuit Breaker — Resilience4j *(in progress)*
+- Eureka Service Registry 
+- API Gateway routing 
+- Circuit Breaker — Resilience4j 
 
 ## Project Structure
 
