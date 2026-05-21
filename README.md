@@ -1,8 +1,14 @@
 # PayPal Provider Service API
 
-> Spring Boot microservice handling PayPal payment initiation — part of a two-service payment microservices architecture built during internship at HulkHire Tech, Hyderabad.
+> **Microservice 1 of 2** in the PayPal Payment Microservices System.
+> Handles PayPal order creation, approval redirect, and payment capture — communicating directly with the PayPal REST API via OAuth2.0.
 
-Deployed on **AWS EC2 via Docker** — Redis caching improved API response time by **40%**, system handled **1,000+ daily requests** in production.
+![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-brightgreen?style=flat-square&logo=springboot)
+![PayPal](https://img.shields.io/badge/PayPal-Sandbox%20%2F%20Live-blue?style=flat-square&logo=paypal)
+![Lombok](https://img.shields.io/badge/Lombok-Enabled-red?style=flat-square)
+![Maven](https://img.shields.io/badge/Maven-Build-red?style=flat-square&logo=apachemaven)
+![Port](https://img.shields.io/badge/Port-8083-lightgrey?style=flat-square)
 
 ---
 
@@ -12,23 +18,25 @@ Deployed on **AWS EC2 via Docker** — Redis caching improved API response time 
 Order System
      │
      ▼
-paypal_provider_api   ──────────────────────►  PayPal REST API
-(Port: 8083)          OAuth2 + JWT Auth         (Sandbox / Live)
+┌─────────────────────────┐
+│  paypal-provider-service │  ──── OAuth2.0 + REST ────►  PayPal REST API
+│  (this service)          │                               (Sandbox / Live)
+│  Port: 8083              │
+└─────────────────────────┘
      │
      ▼
-paypal_processing_service
+paypal-processing-service
 (Port: 8084)
      │
      ▼
 MySQL Database + Redis Cache
 ```
 
-**Provider Service responsibilities:**
-- Accepts payment requests from the order system
-- Authenticates with PayPal via OAuth2.0
-- Creates PayPal orders and captures payments
-- Communicates downstream with `paypal_processing_service`
-- Caches responses in Redis for performance
+This service is responsible for the **PayPal-facing** side of the payment flow:
+- Authenticating with PayPal via OAuth2.0 (Client Credentials)
+- Creating PayPal orders
+- Returning the PayPal approval redirect URL to the client
+- Capturing the payment after user approval
 
 ---
 
@@ -37,16 +45,14 @@ MySQL Database + Redis Cache
 | Layer | Technology |
 |---|---|
 | Language | Java 17 |
-| Framework | Spring Boot |
-| Security | OAuth2.0 + JWT |
-| Caching | Redis (40% response time improvement) |
-| Containerisation | Docker |
-| Cloud | AWS EC2 |
-| API Style | REST — JSON request/response |
-| Service Discovery | Eureka Service Registry |
-| Fault Tolerance | Circuit Breaker (Resilience4j) |
-| Routing | API Gateway |
+| Framework | Spring Boot 3.4.2 |
+| JSON Parsing | Gson |
+| Object Mapping | ModelMapper 3.2.1 |
+| Boilerplate Reduction | Lombok |
+| Payment Gateway | PayPal Orders REST API v2 |
+| Auth | PayPal OAuth2.0 (Client Credentials Grant) |
 | Build Tool | Maven |
+| Profiles | local / dev / prod |
 
 ---
 
@@ -54,71 +60,99 @@ MySQL Database + Redis Cache
 
 ```
 paypal_provider_api/
-├── src/main/java/com/example/paypal/
-│   ├── controller/         # REST endpoints — payment initiation
-│   ├── service/            # Business logic + PayPal API calls
-│   ├── config/             # OAuth2 + Redis + PayPal configuration
-│   └── model/              # Request/Response DTOs
-├── src/main/resources/
-│   └── application.properties
-├── Dockerfile
+├── src/
+│   └── main/
+│       ├── java/com/payments/
+│       │   ├── controller/         # PaymentController — exposes REST endpoints
+│       │   ├── service/            # PaymentService — PayPal API integration logic
+│       │   ├── config/             # PayPal OAuth2.0 client configuration
+│       │   ├── model/              # Request/Response DTOs (Lombok + ModelMapper)
+│       │   └── PaypalProviderServiceApplication.java
+│       └── resources/
+│           ├── application.properties
+│           ├── application-local.properties
+│           ├── application-dev.properties
+│           └── application-prod.properties
+├── z(required-images,testing,system)/   # Postman screenshots & test evidence
+├── .gitignore
 ├── pom.xml
 └── README.md
 ```
 
 ---
 
+## Prerequisites
+
+- Java 17+
+- Maven 3.8+
+- [PayPal Developer Account](https://developer.paypal.com) with a Sandbox App
+- Postman (for API testing)
+
+---
+
 ## Getting Started
 
-### Prerequisites
-- Java 17+
-- Maven
-- Redis (running locally or Docker)
-- PayPal Developer Account
-- Docker (for containerised run)
+### 1. Clone the repository
 
-### 1. Clone the Repository
 ```bash
 git clone https://github.com/CoderRushikesh/paypal_provider_api.git
 cd paypal_provider_api
 ```
 
-### 2. Configure PayPal Credentials
-Open `src/main/resources/application.properties` and replace:
+### 2. Create your PayPal Sandbox App
+
+1. Log in to [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications/sandbox)
+2. Go to **Apps & Credentials** → **Create App**
+3. Copy your **Client ID** and **Client Secret**
+
+### 3. Configure `application-local.properties`
 
 ```properties
-paypal.client.id=YOUR_PAYPAL_CLIENT_ID
-paypal.client.secret=YOUR_PAYPAL_CLIENT_SECRET
+# Server
+server.port=8083
+spring.application.name=paypal-provider-service
+
+# PayPal Sandbox Credentials
+paypal.client.id=YOUR_SANDBOX_CLIENT_ID
+paypal.client.secret=YOUR_SANDBOX_CLIENT_SECRET
+paypal.base-url=https://api-m.sandbox.paypal.com
 paypal.mode=sandbox
-
-spring.redis.host=localhost
-spring.redis.port=6379
-
-spring.datasource.url=jdbc:mysql://localhost:3306/paypal_db
-spring.datasource.username=YOUR_DB_USER
-spring.datasource.password=YOUR_DB_PASSWORD
 ```
 
-### 3. Run Locally
-```bash
-mvn clean install
-mvn spring-boot:run
-```
-API available at: `http://localhost:8083`
+### 4. Run the application
 
-### 4. Run with Docker
 ```bash
-docker build -t paypal-provider-api .
-docker run -p 8083:8083 paypal-provider-api
+# Run with local profile (default)
+./mvnw spring-boot:run
+
+# Or specify a profile
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Server starts at: `http://localhost:8083`
+
+---
+
+## API Reference & Testing Guide
+
+The complete payment flow has **2 steps**:
+
+```
+POST /payments         →  Create PayPal Order  →  Get approval URL
+                                                        │
+                                              User approves on PayPal
+                                                        │
+POST /{orderId}/capture  →  Capture Payment  →  Payment Complete
 ```
 
 ---
 
-## API Reference
+### Step 1 — Create PayPal Order
 
-### Create PayPal Order
+**POST** `http://localhost:8083/payments`
+
+**Headers:**
 ```
-POST http://localhost:8083/payments
 Content-Type: application/json
 ```
 
@@ -126,71 +160,130 @@ Content-Type: application/json
 ```json
 {
   "intent": "CAPTURE",
+  "amount": 10.00,
   "currencyCode": "USD",
-  "amount": 100.00,
-  "returnUrl": "https://example.com/return",
-  "cancelUrl": "https://example.com/cancel"
+  "returnUrl": "http://localhost:8083/payments/success",
+  "cancelUrl": "http://localhost:8083/payments/cancel"
 }
 ```
 
-**Success Response:**
+| Field | Type | Description |
+|---|---|---|
+| `intent` | String | Always `"CAPTURE"` for immediate payment |
+| `amount` | Double | Payment amount |
+| `currencyCode` | String | ISO currency code e.g. `"USD"` |
+| `returnUrl` | String | PayPal redirects here after user approves |
+| `cancelUrl` | String | PayPal redirects here if user cancels |
+
+**Response:**
 ```json
 {
-  "status": "success",
-  "paymentId": "PAY-123456789",
-  "redirectUrl": "https://www.sandbox.paypal.com/checkoutnow?token=EC-123456"
+  "orderId": "89S163096V242562S",
+  "status": "CREATED",
+  "approvalUrl": "https://www.sandbox.paypal.com/checkoutnow?token=89S163096V242562S"
 }
 ```
 
-### Capture Payment
+> 📝 **Copy the `orderId`** — you'll need it for the capture step.
+> 📝 **Copy the `approvalUrl`** — paste it in your browser for Step 2.
+
+---
+
+### Step 2 — Approve Payment on PayPal Sandbox
+
+1. Paste the `approvalUrl` from Step 1 into your browser
+2. You'll see the PayPal sandbox login screen
+3. Go to [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/accounts) → **Sandbox Accounts**
+4. Select any **Personal** account → copy the email and password
+5. Log in with those credentials on the PayPal page
+6. Choose a payment method and click **Pay**
+
+> ✅ Once PayPal confirms the payment, come back to Postman for Step 3.
+
+---
+
+### Step 3 — Capture the Payment
+
+**POST** `http://localhost:8083/{orderId}/capture`
+
+Replace `{orderId}` with the ID from Step 1 (e.g. `89S163096V242562S`).
+
+**Example URL:**
 ```
-POST http://localhost:8083/payments/capture/{orderId}
+POST http://localhost:8083/89S163096V242562S/capture
 ```
 
-**Success Response:**
+**Headers:**
+```
+Content-Type: application/json
+```
+
+No request body required.
+
+**Response:**
 ```json
 {
+  "orderId": "89S163096V242562S",
+  "captureId": "5O190127TN364715T",
   "status": "COMPLETED",
-  "transactionId": "TXN-987654321",
-  "amount": 100.00,
-  "currency": "USD"
+  "amount": 10.00,
+  "currencyCode": "USD"
 }
 ```
 
 ---
 
-## Key Features
+## Quick Postman Testing Sequence
 
-- **OAuth2.0 Authentication** — secure token-based PayPal API access
-- **JWT Security** — all endpoints protected with JWT token validation
-- **Redis Caching** — reduced database load, 40% faster API response time
-- **Docker Deployment** — containerised for consistent AWS EC2 deployment
-- **Separation of Concerns** — clean layered architecture (Controller → Service → Config)
-- **Fault Tolerance** — Circuit Breaker prevents cascade failures if PayPal API is unavailable
-- **Service Discovery** — Eureka enables zero-config service-to-service communication
+| # | Method | URL | Body |
+|---|--------|-----|------|
+| 1 | POST | `localhost:8083/payments` | Order details JSON |
+| 2 | Browser | Paste `approvalUrl`, log in with sandbox account, approve | — |
+| 3 | POST | `localhost:8083/{orderId}/capture` | None |
+
+---
+
+## Multi-Profile Configuration
+
+The service ships with 3 Spring profiles:
+
+| Profile | Use Case | Activated By |
+|---|---|---|
+| `local` | Local development (default) | `./mvnw spring-boot:run` |
+| `dev` | Dev server deployment | `-Dspring-boot.run.profiles=dev` |
+| `prod` | Production deployment | `-Dspring-boot.run.profiles=prod` |
+
+Log paths are configured per profile in `pom.xml`.
 
 ---
 
 ## Screenshots
 
-**Successful Order Creation:**
-
-<img src="z(required-images,testing,system)/succesully_CreateOrder.jpg" alt="Successfully Create Order" width="700"/>
-
-**Payment Capture:**
-
-<img src="z(required-images,testing,system)/successfully.png" alt="Successfully Captured Payment" width="700"/>
+Postman test evidence and sandbox screenshots are available in the [`z(required-images,testing,system)/`](./z(required-images,testing,system)) folder.
 
 ---
 
-## Related Service
+## Related Microservice
 
-- **Processing Service:** [paypal_processing_service](https://github.com/CoderRushikesh/paypal_processing_service-)
-  — handles downstream payment processing after provider initiates the order.
+This service is **Part 1** of a two-service architecture:
+
+| Service | Port | Role |
+|---|---|---|
+| **paypal-provider-service** (this) | 8083 | Communicates with PayPal REST API |
+| [paypal-processing-service](https://github.com/CoderRushikesh) | 8084 | Handles downstream payment logic, MySQL + Redis |
 
 ---
 
 ## Author
 
-**Rushikesh Kamble** — Java Backend Developer  
-[GitHub](https://github.com/CoderRushikesh) | [LinkedIn](https://www.linkedin.com/in/rushikesh-kamble-605a38293/) | [Portfolio](https://myselfrushi.netlify.app/)
+**Rushikesh Sahadev Kamble**
+Java Backend Developer | Spring Boot | Microservices | AWS
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin)](https://linkedin.com/in/rushikesh-kamble)
+[![GitHub](https://img.shields.io/badge/GitHub-CoderRushikesh-black?style=flat-square&logo=github)](https://github.com/CoderRushikesh)
+
+---
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
