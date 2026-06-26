@@ -280,6 +280,7 @@ Below is the screenshot of the deployed EC2 instance for **paypal-provider-servi
 
 ![AWS EC2 Running Instance](z(required-images,testing,system)/Aws,Infrastructur/paypal_provider_api_instance.png)
 
+<img src="z(required-images,testing,system/Aws,Infrastructur/paypal_provider_api_instance.png" alt="AWS EC2 Running Instance" width="600"/>
 
 ## Author
 
