@@ -274,6 +274,13 @@ This service is **Part 1** of a two-service architecture:
 
 ---
 
+## 🚀 AWS Deployment – Current Running Instance
+
+Below is the screenshot of the deployed EC2 instance for **paypal-provider-service**:
+
+![AWS EC2 Running Instance](z(required-images,testing,system)/Aws,Infrastructur/paypal_provider_api_instance.png)
+
+
 ## Author
 
 **Rushikesh Sahadev Kamble**
