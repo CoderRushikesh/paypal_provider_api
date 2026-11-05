@@ -30,6 +30,15 @@ public class TokenService {
 	private static String accessToken;
 
 	@Value("${paypal.client.id}")
+<<<<<<< HEAD
+	private	String CLIENT_ID ;
+	
+	@Value("${paypal.outh.url}")
+	private   String CLIENT_SECRET;
+
+	@Value("${paypal.outhurl}")
+	private String outhUrl ;
+=======
 	private String CLIENT_ID;
 
 	@Value("${paypal.client.secret}")    // ← fix this
@@ -37,6 +46,7 @@ public class TokenService {
 
 	@Value("${paypal.oauth.url}")        // ← fix this
 	private String oauthUrl;
+>>>>>>> master
 	
 	private final ObjectMapper objectMapper;
 	private final JsonUtil jsonUtil;
@@ -44,12 +54,15 @@ public class TokenService {
 	public String getAccessToken() 
 	{
 
+<<<<<<< HEAD
+=======
 		 String clientId = CLIENT_ID.trim();
 		    String clientSecret = CLIENT_SECRET.trim();
 		  log.info("CLIENT_ID value: [{}]", CLIENT_ID);
 		    log.info("CLIENT_SECRET value: [{}]", CLIENT_SECRET);
 		    log.info("OAuth URL: [{}]", oauthUrl);
 		
+>>>>>>> master
 		log.info("Getting access token from PayPal");
 
 		if(accessToken != null) 
@@ -71,7 +84,11 @@ public class TokenService {
 
 		HttpRequest httpRequest = new HttpRequest();
 		httpRequest.setHttpMethod(HttpMethod.POST);
+<<<<<<< HEAD
+		httpRequest.setUrl(outhUrl);
+=======
 		httpRequest.setUrl(oauthUrl);
+>>>>>>> master
 		httpRequest.setHttpHeaders(headers);
 		httpRequest.setBody(formData);
 
