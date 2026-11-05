@@ -1,0 +1,5 @@
+target
+.git
+.metadata
+z(required-images,testing,system)
+*.md
