@@ -77,7 +77,7 @@ public class CreateOrderHelper {
 		ctx.setPaymentMethodPreference(Constant.IMMEDIATE_PAYMENT_REQUIRED);
 		ctx.setLandingPage(Constant.LANDING_PAGE_LOGIN);
 		ctx.setShippingPreference(Constant.NO_SHIPPING);
-		ctx.setUserAction(Constant.USER_ACTION_PAY_NOW);
+		ctx.setUserAction(Constant.PAY_NOW);
 		ctx.setReturnUrl(createOrderReq.getReturnUrl());
 		ctx.setCancelUrl(createOrderReq.getCancelUrl());
 

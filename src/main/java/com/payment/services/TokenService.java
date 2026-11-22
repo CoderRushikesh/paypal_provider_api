@@ -1,5 +1,7 @@
 package com.payment.services;
 
+import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -9,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payment.http.HttpRequest;
 import com.payment.http.HttpServiceEngine;
 import com.payment.res.PaypalOAuthToken;
@@ -22,105 +23,76 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class TokenService {	
+public class TokenService {
 
-	private final HttpServiceEngine httpServiceEngine;
+    private static final long REFRESH_BEFORE_EXPIRY_SECONDS = 300;
 
-	// TODO , implement caching mechanism for access token take care for expiry
-	private static String accessToken;
+    private final HttpServiceEngine httpServiceEngine;
+    private final JsonUtil jsonUtil;
 
-	@Value("${paypal.client.id}")
-<<<<<<< HEAD
-	private	String CLIENT_ID ;
-	
-	@Value("${paypal.outh.url}")
-	private   String CLIENT_SECRET;
+    @Value("${paypal.client.id}")
+    private String clientIdProp;
 
-	@Value("${paypal.outhurl}")
-	private String outhUrl ;
-=======
-	private String CLIENT_ID;
+    @Value("${paypal.client.secret}")
+    private String clientSecretProp;
 
-	@Value("${paypal.client.secret}")    // ← fix this
-	private String CLIENT_SECRET;
+    @Value("${paypal.oauth.url}")
+    private String oauthUrl;
 
-	@Value("${paypal.oauth.url}")        // ← fix this
-	private String oauthUrl;
->>>>>>> master
-	
-	private final ObjectMapper objectMapper;
-	private final JsonUtil jsonUtil;
+    private String accessToken;
+    private Instant expiresAt = Instant.EPOCH;
 
-	public String getAccessToken() 
-	{
+    public synchronized String getAccessToken() {
 
-<<<<<<< HEAD
-=======
-		 String clientId = CLIENT_ID.trim();
-		    String clientSecret = CLIENT_SECRET.trim();
-		  log.info("CLIENT_ID value: [{}]", CLIENT_ID);
-		    log.info("CLIENT_SECRET value: [{}]", CLIENT_SECRET);
-		    log.info("OAuth URL: [{}]", oauthUrl);
-		
->>>>>>> master
-		log.info("Getting access token from PayPal");
+        if (accessToken != null && Instant.now().isBefore(expiresAt)) {
+            return accessToken;
+        }
 
-		if(accessToken != null) 
-		{
-			log.info("Returning cached access token");
-			return accessToken;
-		}
+        String clientId = clientIdProp == null ? "" : clientIdProp.trim();
+        String clientSecret = clientSecretProp == null ? "" : clientSecretProp.trim();
 
-		log.info("No cached access token found, calling OAuth service ");
-	
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBasicAuth(CLIENT_ID, CLIENT_SECRET); // generates Authorization header
-		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        if (clientId.isEmpty() || clientSecret.isEmpty()) {
+            throw new IllegalStateException(
+                    "PayPal credentials missing: set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET");
+        }
 
-		// Prepare form data
-		MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-		formData.add(Constant.GRANT_TYPE, Constant.CLIENT_CREDENTIALS );
+        log.info("Requesting new PayPal access token from {}", oauthUrl);
 
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(clientId, clientSecret);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		HttpRequest httpRequest = new HttpRequest();
-		httpRequest.setHttpMethod(HttpMethod.POST);
-<<<<<<< HEAD
-		httpRequest.setUrl(outhUrl);
-=======
-		httpRequest.setUrl(oauthUrl);
->>>>>>> master
-		httpRequest.setHttpHeaders(headers);
-		httpRequest.setBody(formData);
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add(Constant.GRANT_TYPE, Constant.CLIENT_CREDENTIALS);
 
+        HttpRequest httpRequest = new HttpRequest();
+        httpRequest.setHttpMethod(HttpMethod.POST);
+        httpRequest.setUrl(oauthUrl);
+        httpRequest.setHttpHeaders(headers);
+        httpRequest.setBody(formData);
 
-		log.info("Prepared HTTP Request for OAuth token: {}", httpRequest);
+        ResponseEntity<String> response =
+                httpServiceEngine.makeHttpRequest(httpRequest);
 
-		ResponseEntity<String> response = httpServiceEngine.makeHttpRequest(httpRequest);
-		log.info("HTTP Response received: {}", response);
-		
-		String tokenBody = response.getBody();
-		
-		
-		PaypalOAuthToken token=   jsonUtil.fromJson(tokenBody, PaypalOAuthToken.class);
-		 accessToken = token.getAccessToken();
-		   log.info("Caching access Token for future use");
-	    
-	    
-//		try {
-//			PaypalOAuthToken token = objectMapper.readValue(tokenBody, PaypalOAuthToken.class);
-//		
-//		   log.info("Parsed OAuth token response: {}", token);
-//		   
-//		   accessToken = token.getAccessToken();
-//		   log.info("Caching access Token for future use");
-//		   
-//		   return token.getAccessToken();
-//		} catch (Exception e) {
-//			log.error("Error parsing OAuth token response", e);
-//			throw new RuntimeException("Failed to parse OAuth token response", e);
-//		} 
+        log.info("OAuth response status: {}", response.getStatusCode());
 
-	  return accessToken;
-	}
+        PaypalOAuthToken token =
+                jsonUtil.fromJson(response.getBody(), PaypalOAuthToken.class);
 
+        accessToken = token.getAccessToken();
+
+        long lifetime =
+                Math.max(token.getExpiresIn() - REFRESH_BEFORE_EXPIRY_SECONDS, 0);
+
+        expiresAt = Instant.now().plusSeconds(lifetime);
+
+        log.info("Cached new access token, refreshes in {} seconds", lifetime);
+
+        return accessToken;
+    }
+
+    public synchronized void clearToken() {
+        accessToken = null;
+        expiresAt = Instant.EPOCH;
+    }
 }
