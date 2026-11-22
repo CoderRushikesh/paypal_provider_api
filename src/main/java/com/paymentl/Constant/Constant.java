@@ -21,7 +21,7 @@ public class Constant {
 	 public static final String _2F = "%.2f";
 	 public static final String PAY_PAL_REQUEST_ID = "PayPal-Request-Id";
 
-	 public static final String USER_ACTION_PAY_NOW = "USER_ACTION_PAY_NOW";
+	 public static final String USER_ACTION_PAY_NOW = "PAY_NOW";
 
 	    
 }
